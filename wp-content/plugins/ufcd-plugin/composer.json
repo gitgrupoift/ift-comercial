@@ -1,0 +1,17 @@
+{
+    "name": "ift/ufcd-plugin",
+    "description": "Specific tools and functions to develop IFT's qualifications Rest API server.",
+    "type": "project",
+    "require": {
+    },
+    "autoload": {
+        "psr-0": { "UFCD\\": "classes/" }
+    },
+    "license": "GPL",
+    "authors": [
+        {
+            "name": "Grupo IFT",
+            "email": "geral@meuppt.pt"
+        }
+    ]
+}

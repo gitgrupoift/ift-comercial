@@ -1,0 +1,11 @@
+{
+  "name": "ift-mkt",
+  "version": "1.0.0",
+  "description": "NPM pacote para a plataforma comercial do Grupo IFT.",
+  "main": "main.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "",
+  "license": "ISC"
+}

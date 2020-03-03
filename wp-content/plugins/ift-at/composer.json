@@ -1,0 +1,7 @@
+{
+    "require": {
+    },
+    "require-dev": {
+        "wsdltophp/packagegenerator": "^3.2"
+    }
+}

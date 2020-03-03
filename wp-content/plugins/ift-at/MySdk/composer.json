@@ -1,0 +1,15 @@
+{
+    "name": "myproject/mysdk",
+    "description": "Package generated from arrendamento.wsdl using wsdltophp/packagegenerator",
+    "require": {
+        "php": ">=5.3.3",
+        "ext-soap": "*",
+        "ext-mbstring": "*",
+        "wsdltophp/packagebase": "~2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "": "./src/"
+        }
+    }
+}

@@ -1,0 +1,20 @@
+{
+    "name": "ift/ift-comercial-child",
+    "description": "Child para AstraWP com funções específicas para uso na plataforma de vendas e marketing do Grupo IFT.",
+    "type": "library",
+    "require": {
+        "facebook/graph-sdk": "^5.7",
+        "botman/botman": "^2.5",
+        "botman/driver-facebook": "^1.10",
+        "consolidation/robo": "^2.0"
+    },
+    "autoload": {
+        "psr-4": { "IFT\\Child\\": "classes/" }
+    },
+    "authors": [
+        {
+            "name": "Carlos Matos",
+            "email": "geral@meuppt.pt"
+        }
+    ]
+}
