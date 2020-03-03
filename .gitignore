@@ -20,6 +20,11 @@ wp-content/cache/
 wp-content/backups/
 wp-content/themes/astra/
 wp-content//plugins/advanced-custom-fields/
+wp-content//plugins/astra-sites/
+wp-content//plugins/astra-addons/
+wp-content//plugins/elementor/
+wp-content//plugins/wp-sweep/
+wp-content//plugins/wpforms-lite/
 
 wp-content/advanced-cache.php
 wp-content/object-cache.php
