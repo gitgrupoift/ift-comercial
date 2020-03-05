@@ -127,6 +127,7 @@ set_pdf_print_support(array('post','cartaz','qualifica','ufcd', 'page'));
  */
 add_action('init', '_pdf_rewrite');
 function _pdf_rewrite() {
+  add_rewrite_endpoint('jpg', EP_ALL);
   add_rewrite_endpoint('pdf', EP_ALL);
   add_rewrite_endpoint('pdf-preview', EP_ALL);
   add_rewrite_endpoint('pdf-template', EP_ALL);
@@ -137,6 +138,7 @@ function _pdf_rewrite() {
  */
 add_filter('query_vars', '_get_pdf_query_vars');
 function _get_pdf_query_vars($query_vars) {
+  $query_vars[] = 'jpg';
   $query_vars[] = 'pdf';
   $query_vars[] = 'pdf-preview';
   $query_vars[] = 'pdf-template';
@@ -258,6 +260,56 @@ function _use_pdf_template() {
 
       // pass for printing
       _print_pdf($html);
+
+    }
+      
+    if(isset($wp_query->query_vars['jpg'])) {
+
+      // we want a html template
+      $header = 'Accept:text/html' . "\n";
+
+      // since we're always requesting this from localhost, we need to set the Host
+      // header for WordPress to route our request correctly
+      $header = 'Host:' . $url['host'] . "\n";
+
+      if( defined('FETCH_COOKIES_ENABLED') && FETCH_COOKIES_ENABLED ) {
+        // pass cookies from current request
+        if( isset( $_SERVER['HTTP_COOKIE'] ) ) {
+          $header .= 'Cookie: ' . $_SERVER['HTTP_COOKIE'] . "\n";
+        }
+      }
+
+      // create a request context for file_get_contents
+      $context = stream_context_create(array(
+        'http' => array(
+          'method' => 'GET',
+          'header' => $header,
+        ),
+        'ssl' => array(
+          'verify_peer' => false, // since we're using localhost, HTTPS doesn't need peer verification
+          'verify_peer_name' => false,
+        ),
+      ));
+
+      // load the generated html from the template endpoint
+      $html = file_get_contents( $link, false, $context );
+
+      if( empty( $html ) ) {
+        // sometimes the ssl module just fails, fall back to http insted
+        $html = file_get_contents( str_ireplace( 'https://', 'http://', $link ), false, $context );
+      }
+
+      if( empty( $html ) ) {
+        // if all else fails, try the public site url (not localhost)
+        $link = get_the_permalink();
+        $link = $link . (strpos($link, '?') === false ? '?' : '&') . 'pdf-template';
+        $html = file_get_contents( $link , false, $context );
+      }
+      // process the html output
+      $html = apply_filters('pdf_template_html', $html);
+
+      // pass for printing
+      _print_jpg($html);
 
     }
 
@@ -390,15 +442,6 @@ function _print_pdf($html) {
       //save the pdf file to cache
       file_put_contents($cached, $dompdf->output());
     }
-      
-      // Convert and cache a JPG version of the same file
-      $jpg_hash = rand(1111, 9999);
-      $imagick = new Imagick();
-      $imagick->setResolution(150, 150);
-      $imagick->readImage($cached);
-      $imagick = $imagick->flattenImages();
-      
-      file_put_contents(PDF_CACHE_DIRECTORY . $filename . $jpg_hash . '.jpg', $imagick);
   
 
     //read and display the cached file
@@ -420,3 +463,100 @@ function _print_pdf($html) {
   die();
 
 }
+
+
+/**
+ * Handles the PDF Conversion
+ */
+function _print_jpg($html) {
+  global $wp_query;
+
+  if (isset($wp_query->query_vars['jpg'])) {
+    // convert to PDF
+
+    $filename = sanitize_file_name(get_the_title());
+    $cache_id = substr(md5(get_the_modified_time()), -6);
+
+    $filename = apply_filters('pdf_template_filename', $filename);
+    $cache_id = apply_filters('pdf_template_cache_id', $cache_id);
+
+    $cached = PDF_CACHE_DIRECTORY . $filename . '-' . $cache_id . '.pdf';
+
+    $filename .= '.pdf';
+
+    // check if we need to generate PDF against cache
+    if(( defined('DISABLE_PDF_CACHE') && DISABLE_PDF_CACHE ) || ( isset($_SERVER['HTTP_PRAGMA']) && $_SERVER['HTTP_PRAGMA'] == 'no-cache' ) || !file_exists($cached) ) {
+
+      // we may need more than 30 seconds execution time
+      //set_time_limit(60);
+
+      // include the library
+      require_once 'vendor/autoload.php';
+
+      // html to pdf conversion
+      $dompdf = new Dompdf\Dompdf();
+
+      $dompdf->setPaper(
+        defined('DOMPDF_PAPER_SIZE') ? DOMPDF_PAPER_SIZE : 'a4',
+        defined('DOMPDF_PAPER_ORIENTATION') ? DOMPDF_PAPER_ORIENTATION : 'portrait');
+
+      $options = $dompdf->getOptions();
+      $options->set(array(
+        'fontDir' => DOMPDF_FONT_DIR,
+        'fontCache' => DOMPDF_FONT_CACHE,
+        'isHtml5ParserEnabled' => DOMPDF_ENABLE_HTML5,
+        'isRemoteEnabled' => DOMPDF_ENABLE_REMOTE,
+      ));
+
+      // allow setting a different DPI value
+      if( defined('DOMPDF_DPI') ) $options->set(array('dpi' => DOMPDF_DPI));
+
+      $dompdf->setOptions($options);
+
+      // allow other plugins to filter the html before passing it to dompdf
+      $html = apply_filters('pdf_html_to_dompdf', $html);
+
+      $dompdf->loadHtml($html);
+      //$dompdf->setBasePath(get_stylesheet_directory_uri());
+      $dompdf->render();
+
+      if(defined('DISABLE_PDF_CACHE') && DISABLE_PDF_CACHE) {
+        //just stream the PDF to user if caches are disabled
+        return $dompdf->stream($filename, array("Attachment" => false));
+      }
+
+      // create PDF cache if one doesn't yet exist
+      if(!is_dir(PDF_CACHE_DIRECTORY)) {
+        @mkdir(PDF_CACHE_DIRECTORY);
+      }
+
+      //save the pdf file to cache
+      file_put_contents($cached, $dompdf->output());
+    }
+      
+      // Convert and cache a JPG version of the same file
+      $jpg_hash = rand(1111, 9999);
+      $imagick = new Imagick();
+      $imagick->setResolution(150, 150);
+      $imagick->readImage($cached);
+      $imagick = $imagick->flattenImages();
+      
+      //file_put_contents(PDF_CACHE_DIRECTORY . $filename . $jpg_hash . '.jpg', $imagick);
+  
+
+    //read and display the cached file
+    header('Content-type: image/' . $imagick->getImageFormat());
+    echo $imagick;
+
+  }
+
+  else {
+    // print the HTML raw
+    echo $html;
+  }
+
+  // kill php after output is complete
+  die();
+
+}
+

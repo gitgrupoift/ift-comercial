@@ -5,6 +5,8 @@ namespace UFCD\Classes;
 class Pdf {
 
     private static $instance;
+    
+    private $post_types_with_pdf;
 
 	public static function get_instance() {
 		if ( ! isset( self::$instance ) ) {
@@ -13,8 +15,11 @@ class Pdf {
 			return self::$instance;
     }
     
-    function __construct() {   
+    public function __construct() {   
+        
+        $this->post_types_with_pdf = array();
         
     }
+    
     
 }

@@ -9,7 +9,4 @@ class Head {
         
     }
     
-    public function add_head_class( $classes ) {
-
-    }
 }

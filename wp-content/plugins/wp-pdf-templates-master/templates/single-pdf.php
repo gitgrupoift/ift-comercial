@@ -8,6 +8,28 @@
  * Copy this file to your theme directory to start customising the PDF template.
  * Colors for Posters
 */
+
+function color_luminance( $hex, $percent ) {
+	
+	// validate hex string
+	
+	$hex = preg_replace( '/[^0-9a-f]/i', '', $hex );
+	$new_hex = '#';
+	
+	if ( strlen( $hex ) < 6 ) {
+		$hex = $hex[0] + $hex[0] + $hex[1] + $hex[1] + $hex[2] + $hex[2];
+	}
+	
+	// convert to decimal and change luminosity
+	for ($i = 0; $i < 3; $i++) {
+		$dec = hexdec( substr( $hex, $i*2, 2 ) );
+		$dec = min( max( 0, $dec + $dec * $percent ), 255 ); 
+		$new_hex .= str_pad( dechex( $dec ) , 2, 0, STR_PAD_LEFT );
+	}		
+	
+	return $new_hex;
+}
+
 ?>
 <!DOCTYPE html>
 
@@ -39,10 +61,12 @@ $selection = get_body_class();
     } elseif (in_array('escola-de-saude-e-bem-estar', $selection)) {
         $img_file = 'esb';
         $agenda_color = '7aa5bd';
-    } elseif (in_array('Sem descrição	escola-de-estetica-e-beleza', $selection)) {
+    } elseif (in_array('escola-de-estetica-e-beleza', $selection)) {
         $img_file = 'eeb';
         $agenda_color = 'ab3e8f';
     }
+    
+    $lighten_color = color_luminance( $agenda_color, 0.2 )
     
 ?>
 <style>
@@ -65,15 +89,6 @@ $selection = get_body_class();
         width: 302px;
         height: 267px;
         object-fit: cover;
-    }
-    
-    h1 span {
-        font-family: "knema";
-        color: : #d87f80;
-        font-size: 90x;
-        letter-spacing: -1px;
-        margin-top: 320px;
-        margin-left: 60px;
     }
     
     h1 {
@@ -99,7 +114,7 @@ $selection = get_body_class();
         color: #333;
         font-size: 26px;
         letter-spacing: -1px;
-        bottom: 36px;
+        bottom: 51px;
         right: 140px;
         text-align: center;
     }
@@ -110,7 +125,7 @@ $selection = get_body_class();
         font-family: "knema";
         color: #333;
         font-size: 26px;
-        bottom: 58px;
+        bottom: 73px;
         right: 140px;
         text-align: center;
     }
@@ -120,17 +135,17 @@ $selection = get_body_class();
         font-family: "Helvetica";
         color: #333;
         font-size: 16px;
-        bottom: 86px;
+        bottom: 101px;
         right: 140px;
         text-align: center;
     }
     
     h1 span {
         position: absolute;
-        top: -385px;
-        left: -65px;
-        color: #f59798 !important;
-        font-size: 105px !important;
+        top: -75px;
+        left: 0px;
+        color: <?php echo $lighten_color; ?> !important;
+        font-size: 115px !important;
         text-transform: uppercase;
         letter-spacing: -1px;
     }
@@ -228,7 +243,6 @@ $selection = get_body_class();
         
     </h1>
         
-    </h1>
     <aside>
         <span class="first"><?php echo the_field('fone_de_contacto'); ?></span>
         <span class="second"><?php echo the_field('telemovel'); ?></span>
@@ -240,7 +254,9 @@ $selection = get_body_class();
     <?php if ( get_field( 'formacao_financiada' ) ): ?>
         <p class="financiada-txt">Formação financiada de frequência gratuita para empregados com formação mínima do 9º ano e desempregados com formação mínima do 12º ano. Emissão de certificado e subsídio alimentação incluídos.</p>
     <?php else: ?>
-        <p class="financiada-txt"></p>
+        <h1 class="sigla"><span><?php echo the_field('sigla_da_formacao'); ?></span></h1>
+        
+        <p class="financiada-txt"><?php echo the_field('texto_do_cartaz'); ?></p>
     <?php endif; ?>
 
     

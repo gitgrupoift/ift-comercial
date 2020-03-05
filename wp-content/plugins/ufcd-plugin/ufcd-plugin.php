@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Grupo IFT - UFCD Rest API Plugin
+Plugin Name: Grupo IFT - Comercial e Marketing Plugin
 Plugin URI: https://grupoift.pt
 Description: Conjunto de ferramentas e funções desenvolvidas e aplicáveis apenas ao desenvolvimento da API de UFCDs e qualificações.
 Version: 1.0.0
@@ -9,6 +9,18 @@ Author URI: https://grupoift.pt
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 */
+
+/**
+ * Resumo
+ *
+ * Plugin estrutural para o funcionamento da plataforma de marketing e vendas do Grupo IFT.
+ *
+ * @link https://comercial.grupoift.pt
+ *
+ * @package IFT Comercial e Marketing
+ * @since 1.0.0
+ * @todo Documentação formato Docblock
+ */
 
 namespace UFCD;
 
@@ -31,6 +43,21 @@ class UFCD {
     
     private static $instance;
     
+    /** 
+     * @var string A versão do plugin. */
+	var $version = '1.0.0';
+    
+	/**
+	 * __construct()
+	 *
+	 * Método construct do plugin - aciona autoload e hooks .
+	 *
+	 * @date	24/02/2020
+	 * @since	1.0.0
+	 *
+	 * @param	void
+	 * @return	void
+	 */	    
     private function __construct() {
         
         require __DIR__ . '/vendor/autoload.php';
@@ -56,7 +83,19 @@ class UFCD {
         $this->create_cpts();
                 
     }
-    
+
+
+    /*
+     * instance()
+     *
+     * Função estática de geração do singleton principal do plugin.
+     *
+     * @date	24/02/2020
+     * @since	1.0.0
+     *
+     * @param	void
+     * @return	$instance
+     */
     public static function instance() {
 		if ( is_null( ( self::$instance ) ) ) {
 			self::$instance = new self();
@@ -65,6 +104,17 @@ class UFCD {
 		return self::$instance;
 	}
     
+    /*
+     * run_classes()
+     *
+     * Instancia classes acionadas pelo autoload para uso geral.
+     *
+     * @date	24/02/2020
+     * @since	1.0.0
+     *
+     * @param	void
+     * @return	void
+     */  
     public function run_classes() {
         
         $adds = new Rest();
