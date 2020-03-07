@@ -9,6 +9,7 @@
  */
 
 use IFT\Child\Footer;
+
 /**
  * Define Constants
  */
@@ -49,4 +50,5 @@ function ufcds_assoc() {
 
 
 new Footer();
+
 

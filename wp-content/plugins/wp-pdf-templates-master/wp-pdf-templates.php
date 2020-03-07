@@ -127,6 +127,7 @@ set_pdf_print_support(array('post','cartaz','qualifica','ufcd', 'page'));
  */
 add_action('init', '_pdf_rewrite');
 function _pdf_rewrite() {
+  add_rewrite_endpoint('fb', EP_ALL);
   add_rewrite_endpoint('jpg', EP_ALL);
   add_rewrite_endpoint('pdf', EP_ALL);
   add_rewrite_endpoint('pdf-preview', EP_ALL);
@@ -138,6 +139,7 @@ function _pdf_rewrite() {
  */
 add_filter('query_vars', '_get_pdf_query_vars');
 function _get_pdf_query_vars($query_vars) {
+  $query_vars[] = 'fb';
   $query_vars[] = 'jpg';
   $query_vars[] = 'pdf';
   $query_vars[] = 'pdf-preview';
@@ -151,8 +153,6 @@ function _get_pdf_query_vars($query_vars) {
 register_activation_hook(__FILE__, '_flush_pdf_rewrite_rules');
 register_deactivation_hook(__FILE__, '_flush_pdf_rewrite_rules');
 function _flush_pdf_rewrite_rules() {
-  // flush rewrite rules
-  // NOTE: You can also do this by going to Settings > Permalinks and hitting the save button
   global $wp_rewrite;
   _pdf_rewrite();
   $wp_rewrite->flush_rules(false);
@@ -203,6 +203,27 @@ function _use_pdf_template() {
 
       // use the print template
       add_filter('template_include', '_locate_pdf_template');
+
+    }
+      
+    if (isset($wp_query->query_vars['fb'])) {
+
+      // Substitute the PDF printing template
+
+      // disable scripts and stylesheets
+      // NOTE: We do this because in most cases the stylesheets used on the site
+      // won't automatically work with the DOMPDF Library. This way you have to
+      // define your own PDF styles using <style> tags in the template.
+      add_action('wp_print_styles', '_remove_dep_arrays', ~PHP_INT_MAX);
+      add_action('wp_print_scripts', '_remove_dep_arrays', ~PHP_INT_MAX);
+      add_action('wp_print_footer_scripts', '_remove_dep_arrays', ~PHP_INT_MAX);
+
+      // disable the wp admin bar
+      add_filter('show_admin_bar', '__return_false');
+      remove_action('wp_head', '_admin_bar_bump_cb');
+
+      // use the print template
+      add_filter('template_include', '_locate_fb_template');
 
     }
 
@@ -312,6 +333,56 @@ function _use_pdf_template() {
       _print_jpg($html);
 
     }
+      
+    if(isset($wp_query->query_vars['fb'])) {
+
+      // we want a html template
+      $header = 'Accept:text/html' . "\n";
+
+      // since we're always requesting this from localhost, we need to set the Host
+      // header for WordPress to route our request correctly
+      $header = 'Host:' . $url['host'] . "\n";
+
+      if( defined('FETCH_COOKIES_ENABLED') && FETCH_COOKIES_ENABLED ) {
+        // pass cookies from current request
+        if( isset( $_SERVER['HTTP_COOKIE'] ) ) {
+          $header .= 'Cookie: ' . $_SERVER['HTTP_COOKIE'] . "\n";
+        }
+      }
+
+      // create a request context for file_get_contents
+      $context = stream_context_create(array(
+        'http' => array(
+          'method' => 'GET',
+          'header' => $header,
+        ),
+        'ssl' => array(
+          'verify_peer' => false, // since we're using localhost, HTTPS doesn't need peer verification
+          'verify_peer_name' => false,
+        ),
+      ));
+
+      // load the generated html from the template endpoint
+      $html = file_get_contents( $link, false, $context );
+
+      if( empty( $html ) ) {
+        // sometimes the ssl module just fails, fall back to http insted
+        $html = file_get_contents( str_ireplace( 'https://', 'http://', $link ), false, $context );
+      }
+
+      if( empty( $html ) ) {
+        // if all else fails, try the public site url (not localhost)
+        $link = get_the_permalink();
+        $link = $link . (strpos($link, '?') === false ? '?' : '&') . 'pdf-template';
+        $html = file_get_contents( $link , false, $context );
+      }
+      // process the html output
+      $html = apply_filters('pdf_template_html', $html);
+
+      // pass for printing
+      _print_fb($html);
+
+    }
 
   }
 }
@@ -320,7 +391,7 @@ function _use_pdf_template() {
  * Locates the theme pdf template file to be used
  */
 function _locate_pdf_template($template) {
-
+  global $wp_query;
   // locate proper template file
   // NOTE: this only works if the standard template file exists as well
   // i.e. to use single-product-pdf.php you must also have single-product.php
@@ -335,6 +406,7 @@ function _locate_pdf_template($template) {
     $template_path = get_template_directory() . '/' . $pdf_template;
   }
   else if(file_exists(plugin_dir_path(__FILE__) . 'templates/' . $pdf_template)) {
+
     $template_path = plugin_dir_path(__FILE__) . 'templates/' . $pdf_template;
   }
   else if(file_exists(get_stylesheet_directory() . '/' . 'index-pdf.php')) {
@@ -346,6 +418,33 @@ function _locate_pdf_template($template) {
   else {
     $template_path = plugin_dir_path(__FILE__) . 'index-pdf.php';
   }
+  return $template_path;
+
+}
+
+/**
+ * Locates the theme pdf template file to be used
+ */
+function _locate_fb_template($template) {
+  global $wp_query;
+  // locate proper template file
+  // NOTE: this only works if the standard template file exists as well
+  // i.e. to use single-product-pdf.php you must also have single-product.php
+
+  // @TODO: Utilise a template wrapper like this one: https://roots.io/sage/docs/theme-wrapper/
+  $fb_template = str_replace('.php', '-fb.php', basename($template));
+
+  if(file_exists(get_stylesheet_directory() . '/' . $fb_template)) {
+    $template_path = get_stylesheet_directory() . '/' . $fb_template;
+  }
+  else if(file_exists(get_template_directory() . '/' . $fb_template)) {
+    $template_path = get_template_directory() . '/' . $fb_template;
+  }
+  else if(file_exists(plugin_dir_path(__FILE__) . 'templates/' . $fb_template)) {
+
+    $template_path = plugin_dir_path(__FILE__) . 'templates/' . $fb_template;
+  }
+  
   return $template_path;
 
 }
@@ -394,7 +493,7 @@ function _print_pdf($html) {
     $filename .= '.pdf';
 
     // check if we need to generate PDF against cache
-    if(( defined('DISABLE_PDF_CACHE') && DISABLE_PDF_CACHE ) || ( isset($_SERVER['HTTP_PRAGMA']) && $_SERVER['HTTP_PRAGMA'] == 'no-cache' ) || !file_exists($cached) ) {
+    if(( defined('DISABLE_PDF_CACHE') && DISABLE_PDF_CACHE ) || ( isset($_SERVER['HTTP_PRAGMA']) && $_SERVER['HTTP_PRAGMA'] == 'no-cache' ) || file_exists($cached) ) {
 
       // we may need more than 30 seconds execution time
       //set_time_limit(60);
@@ -470,6 +569,7 @@ function _print_pdf($html) {
  */
 function _print_jpg($html) {
   global $wp_query;
+  ob_end_flush();
 
   if (isset($wp_query->query_vars['jpg'])) {
     // convert to PDF
@@ -485,7 +585,7 @@ function _print_jpg($html) {
     $filename .= '.pdf';
 
     // check if we need to generate PDF against cache
-    if(( defined('DISABLE_PDF_CACHE') && DISABLE_PDF_CACHE ) || ( isset($_SERVER['HTTP_PRAGMA']) && $_SERVER['HTTP_PRAGMA'] == 'no-cache' ) || !file_exists($cached) ) {
+    if(( defined('DISABLE_PDF_CACHE') && DISABLE_PDF_CACHE ) || ( isset($_SERVER['HTTP_PRAGMA']) && $_SERVER['HTTP_PRAGMA'] == 'no-cache' ) || file_exists($cached) ) {
 
       // we may need more than 30 seconds execution time
       //set_time_limit(60);
@@ -559,4 +659,101 @@ function _print_jpg($html) {
   die();
 
 }
+
+function _print_fb($html) {
+  global $wp_query;
+  flush();
+
+  if (isset($wp_query->query_vars['fb'])) {
+    // convert to PDF
+
+    $filename = sanitize_file_name(get_the_title());
+    $cache_id = substr(md5(get_the_modified_time()), -6);
+
+    $filename = apply_filters('pdf_template_filename', $filename);
+    $cache_id = apply_filters('pdf_template_cache_id', $cache_id);
+
+    $cached = PDF_CACHE_DIRECTORY . $filename . '-' . $cache_id . '.pdf';
+
+    $filename .= '.pdf';
+
+    // check if we need to generate PDF against cache
+    if(( defined('DISABLE_PDF_CACHE') && DISABLE_PDF_CACHE ) || ( isset($_SERVER['HTTP_PRAGMA']) && $_SERVER['HTTP_PRAGMA'] == 'no-cache' ) || file_exists($cached) ) {
+
+      // we may need more than 30 seconds execution time
+      //set_time_limit(60);
+
+      // include the library
+      require_once 'vendor/autoload.php';
+
+      // html to pdf conversion
+      $dompdf = new Dompdf\Dompdf();
+      
+      $paper_size = array(0,0,800,800);
+        
+      $dompdf->setPaper(
+        defined('DOMPDF_PAPER_SIZE') ? DOMPDF_PAPER_SIZE : ($paper_size),
+        defined('DOMPDF_PAPER_ORIENTATION') ? DOMPDF_PAPER_ORIENTATION : 'portrait');
+
+      $options = $dompdf->getOptions();
+      $options->set(array(
+        'fontDir' => DOMPDF_FONT_DIR,
+        'fontCache' => DOMPDF_FONT_CACHE,
+        'isHtml5ParserEnabled' => DOMPDF_ENABLE_HTML5,
+        'isRemoteEnabled' => DOMPDF_ENABLE_REMOTE,
+      ));
+
+      // allow setting a different DPI value
+      if( defined('DOMPDF_DPI') ) $options->set(array('dpi' => DOMPDF_DPI));
+
+      $dompdf->setOptions($options);
+
+      // allow other plugins to filter the html before passing it to dompdf
+      $html = apply_filters('pdf_html_to_dompdf', $html);
+
+      $dompdf->loadHtml($html);
+      //$dompdf->setBasePath(get_stylesheet_directory_uri());
+      $dompdf->render();
+
+      if(defined('DISABLE_PDF_CACHE') && DISABLE_PDF_CACHE) {
+        //just stream the PDF to user if caches are disabled
+        return $dompdf->stream($filename, array("Attachment" => false));
+      }
+
+      // create PDF cache if one doesn't yet exist
+      if(!is_dir(PDF_CACHE_DIRECTORY)) {
+        @mkdir(PDF_CACHE_DIRECTORY);
+      }
+
+      //save the pdf file to cache
+          file_put_contents($cached, $dompdf->output());
+        }
+  
+
+    // Convert and cache a JPG version of the same file
+      $jpg_hash = rand(1111, 9999);
+      $imagick = new Imagick();
+      $imagick->setResolution(72, 72);
+      $imagick->readImage($cached);
+      $imagick = $imagick->flattenImages();
+      
+      //file_put_contents(PDF_CACHE_DIRECTORY . $filename . $jpg_hash . '.jpg', $imagick);
+  
+
+    //read and display the cached file
+    header('Content-type: image/' . $imagick->getImageFormat());
+    echo $imagick;
+
+  }
+
+  else {
+    // print the HTML raw
+    echo $html;
+  }
+
+  // kill php after output is complete
+  die();
+
+}
+
 

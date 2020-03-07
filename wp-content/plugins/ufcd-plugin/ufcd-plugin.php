@@ -30,6 +30,8 @@ use UFCD\Classes\CustomType;
 use UFCD\Classes\Templates;
 use UFCD\Classes\Head;
 use UFCD\Classes\Admin;
+use UFCD\Classes\Posting;
+use UFCD\Classes\Rewrite;
 
 
 /**
@@ -121,6 +123,8 @@ class UFCD {
         new Optimize();
         new Templates();
         new Head();
+        new Posting();
+        new Rewrite();
         $admin = new Admin();
         
     }
@@ -182,11 +186,11 @@ class UFCD {
     }
     
     public function activate_ufcd() {
-	   
+
 	}
     
     public function deactivate_ufcd() {
-		
+
 	}
     
     public static function uninstall_ufcd() {

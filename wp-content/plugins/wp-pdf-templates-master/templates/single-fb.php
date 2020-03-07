@@ -75,7 +75,7 @@ $selection = get_body_class();
     body { 
         margin: 0px;
         background-image: url('https://comercial.grupoift.pt/wp-content/themes/ift-mkt/img/<?php echo $img_file; ?>.jpg');
-        background-size: 800px 1125px;
+        background-size: 800px 800px;
     }
     
     figure {
@@ -95,7 +95,7 @@ $selection = get_body_class();
         position: fixed;
         font-family: "knema";
         color: #fff;
-        font-size: 46px;
+        font-size: 60px;
         line-height: 34px;
         letter-spacing: -1px;
         top: 350px;
@@ -179,7 +179,7 @@ $selection = get_body_class();
         width: 400px;
         height: 120px;
         position: absolute;
-        bottom: 60px;
+        bottom: 260px;
         z-index: 20;
     }
     

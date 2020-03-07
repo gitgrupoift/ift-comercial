@@ -22,7 +22,9 @@ class ComposerStaticInit85d5532492e98b404e98c2536d095860
         'UFCD\\Classes\\Head' => __DIR__ . '/../..' . '/classes/Head.php',
         'UFCD\\Classes\\Optimize' => __DIR__ . '/../..' . '/classes/Optimize.php',
         'UFCD\\Classes\\Pdf' => __DIR__ . '/../..' . '/classes/Pdf.php',
+        'UFCD\\Classes\\Posting' => __DIR__ . '/../..' . '/classes/Posting.php',
         'UFCD\\Classes\\Rest' => __DIR__ . '/../..' . '/classes/Rest.php',
+        'UFCD\\Classes\\Rewrite' => __DIR__ . '/../..' . '/classes/Rewrite.php',
         'UFCD\\Classes\\Templates' => __DIR__ . '/../..' . '/classes/Templates.php',
     );
 

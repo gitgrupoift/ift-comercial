@@ -11,6 +11,8 @@ return array(
     'UFCD\\Classes\\Head' => $baseDir . '/classes/Head.php',
     'UFCD\\Classes\\Optimize' => $baseDir . '/classes/Optimize.php',
     'UFCD\\Classes\\Pdf' => $baseDir . '/classes/Pdf.php',
+    'UFCD\\Classes\\Posting' => $baseDir . '/classes/Posting.php',
     'UFCD\\Classes\\Rest' => $baseDir . '/classes/Rest.php',
+    'UFCD\\Classes\\Rewrite' => $baseDir . '/classes/Rewrite.php',
     'UFCD\\Classes\\Templates' => $baseDir . '/classes/Templates.php',
 );
