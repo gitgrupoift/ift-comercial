@@ -98,7 +98,7 @@ $selection = get_body_class();
         font-size: 60px;
         line-height: 34px;
         letter-spacing: -1px;
-        top: 350px;
+        top: 250px;
         left: 60px;
         width: 400px;
     }

@@ -30,6 +30,7 @@ function color_luminance( $hex, $percent ) {
 	return $new_hex;
 }
 
+
 ?>
 <!DOCTYPE html>
 

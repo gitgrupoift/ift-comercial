@@ -187,43 +187,14 @@ function _use_pdf_template() {
 
     if (isset($wp_query->query_vars['pdf-template'])) {
 
-      // Substitute the PDF printing template
-
-      // disable scripts and stylesheets
-      // NOTE: We do this because in most cases the stylesheets used on the site
-      // won't automatically work with the DOMPDF Library. This way you have to
-      // define your own PDF styles using <style> tags in the template.
       add_action('wp_print_styles', '_remove_dep_arrays', ~PHP_INT_MAX);
       add_action('wp_print_scripts', '_remove_dep_arrays', ~PHP_INT_MAX);
       add_action('wp_print_footer_scripts', '_remove_dep_arrays', ~PHP_INT_MAX);
 
-      // disable the wp admin bar
       add_filter('show_admin_bar', '__return_false');
       remove_action('wp_head', '_admin_bar_bump_cb');
 
-      // use the print template
       add_filter('template_include', '_locate_pdf_template');
-
-    }
-      
-    if (isset($wp_query->query_vars['fb'])) {
-
-      // Substitute the PDF printing template
-
-      // disable scripts and stylesheets
-      // NOTE: We do this because in most cases the stylesheets used on the site
-      // won't automatically work with the DOMPDF Library. This way you have to
-      // define your own PDF styles using <style> tags in the template.
-      add_action('wp_print_styles', '_remove_dep_arrays', ~PHP_INT_MAX);
-      add_action('wp_print_scripts', '_remove_dep_arrays', ~PHP_INT_MAX);
-      add_action('wp_print_footer_scripts', '_remove_dep_arrays', ~PHP_INT_MAX);
-
-      // disable the wp admin bar
-      add_filter('show_admin_bar', '__return_false');
-      remove_action('wp_head', '_admin_bar_bump_cb');
-
-      // use the print template
-      add_filter('template_include', '_locate_fb_template');
 
     }
 
@@ -397,6 +368,7 @@ function _locate_pdf_template($template) {
   // i.e. to use single-product-pdf.php you must also have single-product.php
 
   // @TODO: Utilise a template wrapper like this one: https://roots.io/sage/docs/theme-wrapper/
+    
   $pdf_template = str_replace('.php', '-pdf.php', basename($template));
 
   if(file_exists(get_stylesheet_directory() . '/' . $pdf_template)) {
@@ -422,32 +394,6 @@ function _locate_pdf_template($template) {
 
 }
 
-/**
- * Locates the theme pdf template file to be used
- */
-function _locate_fb_template($template) {
-  global $wp_query;
-  // locate proper template file
-  // NOTE: this only works if the standard template file exists as well
-  // i.e. to use single-product-pdf.php you must also have single-product.php
-
-  // @TODO: Utilise a template wrapper like this one: https://roots.io/sage/docs/theme-wrapper/
-  $fb_template = str_replace('.php', '-fb.php', basename($template));
-
-  if(file_exists(get_stylesheet_directory() . '/' . $fb_template)) {
-    $template_path = get_stylesheet_directory() . '/' . $fb_template;
-  }
-  else if(file_exists(get_template_directory() . '/' . $fb_template)) {
-    $template_path = get_template_directory() . '/' . $fb_template;
-  }
-  else if(file_exists(plugin_dir_path(__FILE__) . 'templates/' . $fb_template)) {
-
-    $template_path = plugin_dir_path(__FILE__) . 'templates/' . $fb_template;
-  }
-  
-  return $template_path;
-
-}
 
 
 /**
@@ -732,16 +678,23 @@ function _print_fb($html) {
 
     // Convert and cache a JPG version of the same file
       $jpg_hash = rand(1111, 9999);
+
       $imagick = new Imagick();
-      $imagick->setResolution(72, 72);
+      $barra = new Imagick(plugin_dir_path(__FILE__) . 'templates/barra.jpg');
+      $imagick->setResolution(100, 100);
       $imagick->readImage($cached);
-      $imagick = $imagick->flattenImages();
+      $imagick->cropImage(800, 800, 20, 260);
+      $imagick->compositeImage($barra, Imagick::COMPOSITE_DEFAULT, 0, 600);
+      $imagick->writeImage($jpg_hash . '.jpg');
+      
+      //$imagick = $imagick->getImageBlob();
       
       //file_put_contents(PDF_CACHE_DIRECTORY . $filename . $jpg_hash . '.jpg', $imagick);
   
 
     //read and display the cached file
     header('Content-type: image/' . $imagick->getImageFormat());
+
     echo $imagick;
 
   }
